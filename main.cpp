@@ -8,16 +8,21 @@
 #include <sstream>
 #include <chrono>
 
+// this header is a 3rd party library that lets us have colored console output for improved readability.
+// it is not used for any of the program logic - purely cosmetic.
 #include "rang/include/rang.hpp"
 
-std::mt19937 rng{ std::random_device{}() }; // create a high-quality pseudo random number generator
+std::mt19937 rng{ std::random_device{}() };       // create a high-quality pseudo random number generator
+std::uniform_real_distribution<> bool_dist(0, 1); // create a uniform real dist [0, 1)
 
-unsigned int rand_bool_chance = 2;
-bool rand_bool() { return rng() % rand_bool_chance; }
+double rand_bool_chance = 0.5; // probability of getting a 1
 
-typedef std::vector<std::vector<bool>>      matrix_t;
-typedef std::pair<std::size_t, std::size_t> vec2_t;
-typedef std::pair<vec2_t, vec2_t>           rectangle_t;
+// get a random bool based on rand_bool_chance.
+bool rand_bool() { return bool_dist(rng) < rand_bool_chance; }
+
+typedef std::vector<std::vector<bool>>      matrix_t;    // type to use to represent a matrix
+typedef std::pair<std::size_t, std::size_t> vec2_t;      // type to use for representing a 2d (discrete) vector
+typedef std::pair<vec2_t, vec2_t>           rectangle_t; // type to use for representing a rectangle
 
 // returns a rows x cols matrix of bools
 matrix_t rand_matrix(std::size_t rows, std::size_t cols)
@@ -185,8 +190,8 @@ bool parse(T &dest, const char *str)
 	return istr && istr.get() == EOF;
 }
 // as parse() except that failure triggers an error message and immediate program termination
-template<typename T, int errorcode = 200>
-T volatile_parse(const char *str)
+template<typename T>
+T volatile_parse(const char *str, int errorcode = 200)
 {
 	T temp;
 	if (!parse(temp, str)) { std::cerr << "failed to parse " << str << " as " << typeid(T).name() << '\n'; std::exit(errorcode); }
@@ -203,8 +208,8 @@ int main(int argc, const char *const argv[])
 		return 1;
 	}
 
-	int zero_chance = volatile_parse<int>(argv[1]);
-	if (zero_chance <= 0) { std::cerr << "attempt to set zero chance to " << zero_chance << " (must be positive)\n"; return 2; }
+	double zero_chance = volatile_parse<double>(argv[1]);
+	if (zero_chance < 0 || zero_chance > 1) { std::cerr << "attempt to set zero chance to " << zero_chance << " (must be [0, 1])\n"; return 2; }
 	rand_bool_chance = zero_chance;
 
 	int rows = volatile_parse<int>(argv[2]);
